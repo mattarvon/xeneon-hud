@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TAC-NET // LABYRINTH</title>
+<style>
+:root{
+  --bg:#030405; --brass:#d2a84e; --brass-hi:#f3d992; --brass-dim:#7d6228; --line:rgba(210,168,78,.30);
+  --cold:#a8ecff; --red:#ff2414; --blood:#8e0b06;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none;user-select:none}
+body{pointer-events:none}
+#stage{position:absolute;left:0;top:0;width:2560px;height:720px;transform-origin:0 0;overflow:hidden;
+  background:
+    radial-gradient(1200px 500px at 50% 120%,rgba(142,11,6,.22),transparent 70%),
+    radial-gradient(900px 400px at 12% -20%,rgba(168,236,255,.06),transparent 70%),
+    var(--bg);
+  font-family:Bahnschrift,'DIN Alternate','Agency FB','Segoe UI',sans-serif;font-stretch:75%;
+  color:var(--brass);letter-spacing:.09em;text-transform:uppercase;
+  text-shadow:0 0 9px rgba(210,168,78,.38);
+  animation:flick 7s infinite steps(1)}
+@keyframes flick{0%,100%{opacity:1}41%{opacity:.965}42%{opacity:1}77%{opacity:.98}78%{opacity:1}}
+.engr{font-family:'Copperplate Gothic Bold','Copperplate Gothic','Felix Titling',Bahnschrift,serif;font-stretch:100%;letter-spacing:.14em}
+
+/* ---------- header / footer */
+header{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(210,168,78,.13),rgba(210,168,78,.02))}
+header .l{font-size:21px;color:var(--brass-hi)}
+header .l small{font-size:15px;color:var(--brass-dim);margin-left:14px}
+#banner{position:absolute;left:50%;top:0;height:46px;transform:translateX(-50%);display:flex;align-items:center;gap:18px;font-size:19px}
+#banner.crit #bannerText{color:var(--red);text-shadow:0 0 14px rgba(255,36,20,.9);animation:blink 1s infinite steps(1)}
+@keyframes blink{50%{opacity:.25}}
+/* ISS urine tank, NODE3000005 */
+#iss{position:absolute;left:352px;top:0;height:46px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--brass-dim)}
+#iss .tank{position:relative;width:118px;height:18px;border:1.5px solid var(--brass);border-radius:9px;overflow:hidden;box-shadow:0 0 8px rgba(210,168,78,.35),inset 0 0 6px rgba(0,0,0,.8)}
+#iss .tank i{position:absolute;left:0;top:0;bottom:0;width:0;transition:width 1.2s ease;background:linear-gradient(180deg,#fff0a0,#f2d027 45%,#b89405);box-shadow:0 0 12px rgba(242,208,39,.75)}
+#iss .tank b{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.55)}
+#iss .seg{font-size:30px;filter:drop-shadow(0 0 6px rgba(242,208,39,.8))}
+#iss .seg polygon{fill:#1c1703} #iss .seg polygon.on{fill:#f2d027}
+#iss .st{color:#f2d027;text-shadow:0 0 8px rgba(242,208,39,.55);min-width:104px}
+#iss.warn .st{color:#ff9800;text-shadow:0 0 10px rgba(255,152,0,.7)}
+#iss.crit .st{color:var(--red);text-shadow:0 0 12px rgba(255,36,20,.9);animation:blink 1s infinite steps(1)}
+#iss.off .st{color:var(--brass-dim);text-shadow:none}
+header .r{display:flex;gap:30px;align-items:baseline;font-size:15px;color:var(--brass-dim)}
+header .r b{font-size:23px;font-weight:600;color:var(--brass-hi);margin-left:8px;font-variant-numeric:tabular-nums}
+footer{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;gap:34px;padding:0 22px;
+  border-top:1px solid var(--line);font-size:15px;color:var(--brass-dim);white-space:nowrap;overflow:hidden;
+  background:linear-gradient(0deg,rgba(210,168,78,.10),rgba(210,168,78,.01))}
+footer .e b{color:var(--brass-dim);font-weight:400;margin-right:8px}
+footer .e:first-child{color:var(--brass-hi)}
+footer .e.crit{color:var(--red);text-shadow:0 0 10px rgba(255,36,20,.7)}
+
+/* ---------- layout */
+main{position:absolute;left:16px;right:16px;top:54px;bottom:42px;display:grid;
+  grid-template-columns:590px 750px 1fr 440px;gap:30px}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{position:relative;flex:1;min-height:0;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(210,168,78,.055),rgba(210,168,78,.012) 40%,rgba(142,11,6,.05));
+  box-shadow:inset 0 0 40px rgba(0,0,0,.75)}
+.panel>h2{margin:0;height:30px;padding:0 40px;font-size:15px;font-weight:400;display:flex;align-items:center;justify-content:space-between;
+  color:var(--brass-hi);background:linear-gradient(180deg,rgba(210,168,78,.20),rgba(210,168,78,.07));border-bottom:1px solid var(--line)}
+.panel>h2 span{font-family:Bahnschrift,sans-serif;font-stretch:75%;color:var(--brass-dim);font-size:14px;letter-spacing:.09em}
+svg.corner{position:absolute;width:34px;height:34px;fill:none;stroke:var(--brass);stroke-width:1.4;filter:drop-shadow(0 0 3px rgba(210,168,78,.6))}
+svg.corner.tl{left:-1px;top:-1px} svg.corner.tr{right:-1px;top:-1px;transform:scaleX(-1)}
+svg.corner.bl{left:-1px;bottom:-1px;transform:scaleY(-1)} svg.corner.br{right:-1px;bottom:-1px;transform:scale(-1,-1)}
+canvas.chain{position:absolute;top:46px;width:30px;height:640px}
+
+/* ---------- 7-segment */
+.seg{display:inline-flex;gap:.12em;filter:drop-shadow(0 0 7px rgba(255,36,20,.75))}
+.seg svg{height:1em;width:.6em;transform:skewX(-7deg);overflow:visible}
+.seg polygon{fill:#220503}
+.seg polygon.on{fill:var(--red)}
+.seg.brass{filter:drop-shadow(0 0 6px rgba(210,168,78,.7))}
+.seg.brass polygon{fill:#1d1608} .seg.brass polygon.on{fill:var(--brass-hi)}
+.lbl{font-size:13px;color:var(--brass-dim)}
+.unit{font-size:15px;color:var(--brass-dim);margin-left:6px}
+
+/* ---------- bars */
+.bar{position:relative;height:12px;background:rgba(210,168,78,.10);overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:0;transition:width .8s linear;
+  background:repeating-linear-gradient(90deg,var(--brass) 0 5px,transparent 5px 8px);box-shadow:0 0 8px rgba(210,168,78,.5)}
+.bar.red i{background:repeating-linear-gradient(90deg,var(--red) 0 5px,transparent 5px 8px);box-shadow:0 0 8px rgba(255,36,20,.6)}
+
+/* ---------- primary vitals: the wall of counters, far left where the eye lands first */
+.vgrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);height:calc(100% - 30px)}
+.vc{display:flex;flex-direction:column;justify-content:space-between;padding:12px 20px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:0}
+.vc:nth-child(2n){border-right:0} .vc:nth-child(n+5){border-bottom:0;padding-bottom:30px} /* clear the corner filigree */
+.vc .lbl{display:flex;justify-content:space-between;font-size:14px}
+.vc .lbl span:first-child{color:var(--brass-hi)}
+.vc .seg{font-size:116px;align-self:center}
+.vc .bar{height:10px}
+
+/* ---------- targets: top processes */
+#targets{flex:0 0 206px}
+.tg{display:grid;grid-template-columns:1fr 1fr 168px;height:calc(100% - 30px)}
+.tg .colm{padding:8px 16px 10px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.tg .colm:first-child{padding:8px 16px 18px 30px} /* clear the corner filigree */
+.tg .hd{font-size:12.5px;color:var(--brass-dim);display:flex;justify-content:space-between}
+.tg .p{display:grid;grid-template-columns:128px 1fr 58px;gap:9px;align-items:center;font-size:14.5px}
+.tg .p span:first-child{color:var(--brass-hi);text-transform:none;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg .p span:last-child{text-align:right;color:var(--brass-hi);font-variant-numeric:tabular-nums}
+.tg .p .bar{height:10px}
+.tg .cnt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.tg .cnt .seg{font-size:64px}
+.split{flex:1;min-height:0;display:flex;gap:14px}
+
+/* ---------- tracker (compact) */
+#tracker{flex:0 0 372px}
+#trk{display:block}
+.trk-read{height:98px;display:flex;align-items:center;justify-content:space-around;border-top:1px solid var(--line);padding:0 6px}
+.trk-read .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.trk-read .seg{font-size:44px}
+.trk-read .lbl{font-size:11.5px}
+
+/* ---------- pin grid + system */
+.pins{padding:8px 12px 2px;border-bottom:1px solid var(--line)}
+.pins .lbl{display:flex;justify-content:space-between;font-size:12.5px}
+.pins canvas{display:block}
+.sys{padding:9px 14px 20px;display:flex;flex-direction:column;justify-content:space-between;height:calc(100% - 30px - 154px)}
+.sys .r{display:grid;grid-template-columns:58px 1fr 100px;align-items:center;gap:9px;font-size:13.5px}
+.sys .r span:last-child{text-align:right;color:var(--brass-hi);font-variant-numeric:tabular-nums}
+
+/* ---------- squad */
+#squadRows{display:flex;flex-direction:column;height:calc(100% - 30px)}
+.marine{flex:1;display:grid;grid-template-columns:204px 1fr 132px;align-items:center;border-bottom:1px solid var(--line);padding:0 14px 0 18px;min-height:0}
+.marine:last-child{border-bottom:0}
+.marine .cs{font-size:21px;color:var(--brass-hi);line-height:1;white-space:nowrap;letter-spacing:.1em}
+.marine .sub{font-size:12.5px;color:var(--brass-dim);margin-top:5px}
+.marine .st{font-size:12.5px;margin-top:5px;color:var(--cold);text-shadow:0 0 8px rgba(168,236,255,.6)}
+.marine.dead .cs,.marine.dead .st{color:var(--red);text-shadow:0 0 12px rgba(255,36,20,.85)}
+.marine.dead .st{animation:blink 1s infinite steps(1)}
+.marine canvas{width:100%;height:78px;display:block}
+.marine .v{display:grid;grid-template-columns:34px 1fr;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--brass-dim);padding-left:12px}
+.marine .v b{grid-column:1/3;font-weight:400;color:var(--brass-hi);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* ---------- bishop */
+#bishop{flex:0 0 262px}
+.bi{padding:12px 18px;display:flex;flex-direction:column;gap:9px;height:calc(100% - 30px)}
+.bi .state{font-size:25px;color:var(--cold);text-shadow:0 0 12px rgba(168,236,255,.7)}
+.bi .state.off{color:var(--red);text-shadow:0 0 12px rgba(255,36,20,.85)}
+.bi .mdl{display:flex;justify-content:space-between;font-size:15px;color:var(--brass-hi);text-transform:none;letter-spacing:.04em}
+.bi .mdl span:last-child{color:var(--brass-dim);text-transform:uppercase}
+.bi .idle{font-size:14px;color:var(--brass-dim);line-height:1.5}
+.bi .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--brass-dim)}
+.bi .foot div:first-child{display:flex;justify-content:space-between}
+
+/* ---------- casualty report: cluster trouble board */
+.cas{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.cas .c{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0 10px;border-right:1px solid var(--line)}
+.cas .c:last-child{border-right:0}
+.cas .seg{font-size:54px}
+.cas .lbl{font-size:12px;text-align:center}
+.cas .c.bad .lbl{color:var(--red);text-shadow:0 0 10px rgba(255,36,20,.8);animation:blink 1s infinite steps(1)}
+.inc{padding:9px 18px 0;font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.inc .hd{font-size:12px;color:var(--brass-dim);display:flex;justify-content:space-between;margin-top:3px}
+.inc .ok{color:var(--cold);text-shadow:0 0 8px rgba(168,236,255,.6);font-size:15px}
+.inc .l{display:flex;justify-content:space-between;gap:12px;color:var(--brass-hi);text-transform:none;letter-spacing:.03em}
+.inc .l span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inc .l span:last-child{color:var(--brass-hi);text-transform:uppercase;white-space:nowrap;font-variant-numeric:tabular-nums}
+.inc .l.crit,.inc .l.crit span:last-child{color:var(--red);text-shadow:0 0 10px rgba(255,36,20,.7)}
+
+/* ---------- overlays */
+.scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.26) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.62) 100%)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="fil" viewBox="0 0 34 34">
+    <path d="M0.7,34 V11 Q0.7,0.7 11,0.7 H34"/>
+    <path d="M6,30 V15 Q6,6 15,6 H30"/>
+    <path d="M11,22 Q11,11 22,11"/>
+    <circle cx="15.5" cy="15.5" r="2.2"/>
+    <path d="M0.7,0.7 L9,9 M17.5,17.5 L24,24"/>
+  </symbol>
+</svg>
+
+<div id="stage">
+  <header>
+    <div class="l engr">USCM TAC-NET<small id="host">// ---</small></div>
+    <div id="iss" class="off"><span>ISS PISS TANK</span><div class="tank"><i></i><b style="left:25%"></b><b style="left:50%"></b><b style="left:75%"></b></div><div class="seg" id="sIss" data-n="3"></div><span>PCT</span><span class="st" id="issSt">AWAITING SIGNAL</span></div>
+    <div id="banner"><canvas class="lev" width="44" height="40"></canvas><span id="bannerText" class="engr">ACQUIRING SIGNAL</span><canvas class="lev" width="44" height="40"></canvas></div>
+    <div class="r"><span>MISSION TIME<b id="upt">--</b></span><span id="date">----.--.--</span><span><b id="clock">--:--:--</b></span></div>
+  </header>
+
+  <main>
+    <div class="col">
+      <section class="panel" id="vitals">
+        <h2 class="engr">PRIMARY VITALS <span id="gpuName">// GPU</span></h2>
+        <div class="vgrid">
+          <div class="vc"><div class="lbl"><span>GPU LOAD</span><span>PCT</span></div><div class="seg" id="sLoad" data-n="2"></div><div class="bar red" id="bvLoad"><i></i></div></div>
+          <div class="vc"><div class="lbl"><span>GPU TEMP</span><span>DEG F</span></div><div class="seg" id="sTemp" data-n="3"></div><div class="bar red" id="bvTemp"><i></i></div></div>
+          <div class="vc"><div class="lbl"><span>POWER DRAW</span><span id="powLim">W</span></div><div class="seg" id="sPow" data-n="3"></div><div class="bar red" id="bvPow"><i></i></div></div>
+          <div class="vc"><div class="lbl"><span>VRAM HELD</span><span id="vramTot">GB</span></div><div class="seg" id="sVram" data-n="2"></div><div class="bar red" id="bvVram"><i></i></div></div>
+          <div class="vc"><div class="lbl"><span>CPU LOAD</span><span>PCT</span></div><div class="seg" id="sCpu" data-n="2"></div><div class="bar red" id="bvCpu"><i></i></div></div>
+          <div class="vc"><div class="lbl"><span>RAM HELD</span><span id="ramTot">GB</span></div><div class="seg" id="sRam" data-n="2"></div><div class="bar red" id="bvRam"><i></i></div></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" id="targets">
+        <h2 class="engr">TARGETS <span>// WHAT IS EATING THE RIG</span></h2>
+        <div class="tg">
+          <div class="colm"><div class="hd"><span>BY CPU</span><span>PCT OF MACHINE</span></div><div id="tgCpu" style="display:contents"></div></div>
+          <div class="colm"><div class="hd"><span>BY RAM</span><span>GB</span></div><div id="tgRam" style="display:contents"></div></div>
+          <div class="cnt"><div class="seg" id="sProcs" data-n="3"></div><div class="lbl">PROCESSES</div></div>
+        </div>
+      </section>
+      <div class="split">
+        <section class="panel" id="tracker">
+          <h2 class="engr">M314 TRACKER <span>// K3S PERIMETER</span></h2>
+          <canvas id="trk" width="370" height="278"></canvas>
+          <div class="trk-read">
+            <div class="cell"><div class="seg" id="sRange" data-n="2"></div><div class="lbl">NEAREST  M</div></div>
+            <div class="cell"><div class="seg" id="sContacts" data-n="2"></div><div class="lbl">CONTACTS</div></div>
+            <div class="cell"><div class="seg brass" id="sPods" data-n="3"></div><div class="lbl">SOULS // PODS</div></div>
+          </div>
+        </section>
+        <section class="panel" id="sysp">
+          <h2 class="engr">PIN GRID <span id="cpuName">// CPU</span></h2>
+          <div class="pins"><div class="lbl"><span>ONE NAIL PER THREAD</span><span id="cpuLoad">--</span></div><canvas id="pinc" width="338" height="126"></canvas></div>
+          <div class="sys">
+            <div class="r"><span>FAN</span><div class="bar" id="bFan"><i></i></div><span id="tFan">--</span></div>
+            <div class="r"><span>CLOCK</span><div class="bar" id="bClk"><i></i></div><span id="tClk">--</span></div>
+            <div class="r"><span>NET DN</span><div class="bar" id="bRx"><i></i></div><span id="tRx">--</span></div>
+            <div class="r"><span>NET UP</span><div class="bar" id="bTx"><i></i></div><span id="tTx">--</span></div>
+            <div id="diskRows" style="display:contents"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="col">
+      <section class="panel" id="squad">
+        <h2 class="engr">SQUAD VITALS <span id="squadSub">// TURING K3S</span></h2>
+        <div id="squadRows"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" id="bishop">
+        <h2 class="engr">BISHOP <span>SYNTHETIC // OLLAMA</span></h2>
+        <div class="bi">
+          <div class="state" id="biState">--</div>
+          <div id="biModels"></div>
+          <div class="foot"><div><span id="biInst">-- MODELS IN ARMORY</span><span id="biVram">--</span></div><div class="bar red" id="bBi"><i></i></div></div>
+        </div>
+      </section>
+      <section class="panel" id="casualty">
+        <h2 class="engr">CASUALTY REPORT <span>// K3S TROUBLE BOARD</span></h2>
+        <div class="cas">
+          <div class="c" id="cArgo"><div class="seg" id="sArgo" data-n="2"></div><div class="lbl" id="lArgo">ARGO SYNCED</div></div>
+          <div class="c" id="cDown"><div class="seg" id="sDown" data-n="2"></div><div class="lbl">PODS DOWN</div></div>
+          <div class="c" id="cWarn"><div class="seg" id="sWarn" data-n="2"></div><div class="lbl">WARNINGS 1H</div></div>
+        </div>
+        <div class="inc" id="incidents"></div>
+      </section>
+    </div>
+  </main>
+
+  <canvas class="chain" id="ch0" width="30" height="640" style="left:606px"></canvas>
+  <canvas class="chain" id="ch1" width="30" height="640" style="left:1386px"></canvas>
+  <canvas class="chain" id="ch2" width="30" height="640" style="left:2074px"></canvas>
+
+  <footer id="ticker"></footer>
+  <div class="scan"></div><div class="vig"></div>
+</div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const BRASS = '210,168,78', COLD = '168,236,255', RED = '255,36,20';
+
+// ---------- stage scaling: 1:1 on the Edge, letterboxed preview elsewhere
+function fit() {
+  const s = Math.min(innerWidth / 2560, innerHeight / 720);
+  const st = $('#stage');
+  st.style.transform = `translate(${(innerWidth - 2560 * s) / 2}px,${(innerHeight - 720 * s) / 2}px) scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+
+// ---------- panel filigree
+document.querySelectorAll('.panel').forEach((p) => {
+  for (const c of ['tl', 'tr', 'bl', 'br']) p.insertAdjacentHTML('beforeend', `<svg class="corner ${c}"><use href="#fil"/></svg>`);
+});
+
+// ---------- 7-segment displays
+const SEGP = {
+  a: '11,8 16,3 44,3 49,8 44,13 16,13', g: '11,50 16,45 44,45 49,50 44,55 16,55', d: '11,92 16,87 44,87 49,92 44,97 16,97',
+  f: '8,11 13,16 13,44 8,49 3,44 3,16', b: '52,11 57,16 57,44 52,49 47,44 47,16',
+  e: '8,51 13,56 13,84 8,89 3,84 3,56', c: '52,51 57,56 57,84 52,89 47,84 47,56',
+};
+const SEGC = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg', '-': 'g', ' ': '' };
+document.querySelectorAll('.seg').forEach(initSeg);
+function initSeg(el) {
+  const n = +el.dataset.n;
+  el.innerHTML = Array.from({ length: n }, () => `<svg viewBox="0 0 60 100">${Object.entries(SEGP).map(([k, p]) => `<polygon data-s="${k}" points="${p}"/>`).join('')}</svg>`).join('');
+  setSeg(el, '-'.repeat(n));
+}
+function setSeg(el, v, pad = '0') {
+  if (!el) return;
+  const n = +el.dataset.n;
+  const s = (v === null || v === undefined || Number.isNaN(v)) ? '-'.repeat(n) : String(v).padStart(n, pad).slice(-n);
+  if (el._v === s) return;
+  el._v = s;
+  [...el.children].forEach((svg, i) => {
+    const on = SEGC[s[i]] ?? '';
+    for (const p of svg.children) p.classList.toggle('on', on.includes(p.dataset.s));
+  });
+}
+
+// ---------- formatting
+const pad2 = (n) => String(n).padStart(2, '0');
+const toF = (c) => Math.round(c * 9 / 5 + 32); // feeds report Celsius; every temperature on screen is Fahrenheit
+const gb = (b) => b / 2 ** 30;
+const num = (n) => Number(n || 0).toLocaleString('en-US');
+function rate(bps) { const m = bps * 8 / 1e6; return m >= 100 ? `${m.toFixed(0)} MB/S` : m >= 1 ? `${m.toFixed(1)} MB/S` : `${(m * 1000).toFixed(0)} KB/S`; }
+function dur(s) { s = Math.floor(s); const d = Math.floor(s / 86400); return `${d ? d + 'D ' : ''}${pad2(Math.floor(s % 86400 / 3600))}:${pad2(Math.floor(s % 3600 / 60))}:${pad2(s % 60)}`; }
+function setBar(id, pct) { const i = $(id + ' i'); if (i) i.style.width = Math.max(0, Math.min(100, pct || 0)) + '%'; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- state
+const S = { d: null, last: 0, ekg: {}, nodeKey: '' };
+const ISS_PREVIEW = new URLSearchParams(location.search).get('iss'); // design preview only, e.g. ?iss=87
+function ingest(d) {
+  if (ISS_PREVIEW !== null) d.iss = { conn: 'live', pct: +ISS_PREVIEW, updated: Date.now() };
+  S.d = d; S.last = performance.now(); onData(d);
+}
+if (location.search.includes('poll')) { // headless screenshots: an open SSE stream never lets the page finish loading
+  const poll = () => fetch('/api/telemetry').then((r) => r.json()).then(ingest).catch(() => {});
+  poll(); setInterval(poll, 1000);
+} else {
+  new EventSource('/api/stream').onmessage = (e) => ingest(JSON.parse(e.data));
+}
+
+function alerts(d) {
+  const a = [];
+  if (!d.k3s.up) a.push('CLUSTER UPLINK LOST');
+  d.k3s.nodes.filter((n) => !n.ready).forEach((n) => a.push(`${n.name} FLATLINE`));
+  if (d.gpu && d.gpu.temp >= 85) a.push(`SMARTGUN OVERHEAT ${toF(d.gpu.temp)}F // NO TEARS PLEASE`);
+  ((d.k3s.argo || {}).bad || []).forEach((x) => a.push(`ARGO ${x.name} ${x.health}`));
+  if (!d.ollama.up) a.push('BISHOP OFFLINE');
+  if (d.k3s.pods.bad.length) a.push(`${d.k3s.pods.bad.length} PODS IN TORMENT`);
+  if (d.iss && d.iss.pct !== null && d.iss.pct >= 95) a.push('ISS URINE TANK CRITICAL // FLUSH');
+  return a;
+}
+
+function onData(d) {
+  $('#host').textContent = `// ${d.host}`;
+  $('#upt').textContent = dur(d.uptime);
+
+  const a = alerts(d);
+  $('#banner').classList.toggle('crit', a.length > 0);
+  $('#bannerText').textContent = a.length ? (a.length > 1 ? `${a[0]}  +${a.length - 1}` : a[0]) : 'ALL SIGNALS NOMINAL // SUCH SIGHTS TO SHOW YOU';
+
+  // ISS urine tank (same thresholds and wording as the iss-piss-o-meter tray app)
+  const iss = d.iss || { pct: null, conn: 'offline' };
+  const has = iss.pct !== null;
+  const ie = $('#iss');
+  ie.classList.toggle('off', !has);
+  ie.classList.toggle('crit', has && iss.pct >= 95);
+  ie.classList.toggle('warn', has && iss.pct >= 80 && iss.pct < 95);
+  setSeg($('#sIss'), has ? Math.round(iss.pct) : null, ' ');
+  $('#iss .tank i').style.width = (has ? iss.pct : 0) + '%';
+  $('#issSt').textContent = !has ? (iss.conn === 'live' ? 'AWAITING SIGNAL' : iss.conn.toUpperCase())
+    : iss.pct >= 95 ? 'CRITICAL - FLUSH!' : iss.pct >= 80 ? 'DUMP SOON' : iss.pct >= 60 ? 'FILLING UP' : 'NOMINAL';
+
+  // smartgun
+  const g = d.gpu;
+  if (g) {
+    $('#gpuName').textContent = `// ${g.name}`;
+    setSeg($('#sLoad'), Math.min(99, Math.round(g.util)));
+    setSeg($('#sTemp'), toF(g.temp), ' ');
+    setSeg($('#sPow'), Math.round(g.power), ' ');
+    setSeg($('#sVram'), Math.round(g.memUsed / 1024), ' ');
+    $('#powLim').textContent = g.powerLimit ? `W / ${Math.round(g.powerLimit)}` : 'W';
+    $('#vramTot').textContent = `GB / ${Math.round(g.memTotal / 1024)}`;
+    setBar('#bvLoad', g.util);
+    setBar('#bvTemp', 100 * (g.temp - 25) / 65); // gauge spans 77F to 194F
+    setBar('#bvPow', g.powerLimit ? 100 * g.power / g.powerLimit : 0);
+    setBar('#bvVram', 100 * g.memUsed / g.memTotal);
+    setBar('#bFan', g.fan); $('#tFan').textContent = g.fan === null ? '--' : `${Math.round(g.fan)} PCT`;
+    setBar('#bClk', 100 * g.clock / 3200); $('#tClk').textContent = `${Math.round(g.clock)} MHZ`;
+  } else {
+    for (const id of ['#sLoad', '#sTemp', '#sPow', '#sVram']) setSeg($(id), null);
+  }
+
+  // system
+  $('#cpuName').textContent = `// ${d.cpu.model.replace(/AMD |Ryzen \d |\d+-Core Processor/gi, '').trim()}`;
+  $('#cpuLoad').textContent = `${d.cpu.cores.length} THREADS`;
+  setSeg($('#sCpu'), Math.min(99, d.cpu.load)); setBar('#bvCpu', d.cpu.load);
+  setSeg($('#sRam'), Math.round(gb(d.mem.used)), ' '); setBar('#bvRam', 100 * d.mem.used / d.mem.total);
+  $('#ramTot').textContent = `GB / ${Math.round(gb(d.mem.total))}`;
+  // log scale so idle chatter still moves the needle; full bar = 1 Gbit
+  const nb = (bps) => 100 * Math.log10(1 + bps * 8 / 1e4) / 5;
+  setBar('#bRx', nb(d.net.rx)); $('#tRx').textContent = rate(d.net.rx);
+  setBar('#bTx', nb(d.net.tx)); $('#tTx').textContent = rate(d.net.tx);
+  $('#diskRows').innerHTML = d.disks.map((k) => `<div class="r"><span>DISK ${k.name}</span><div class="bar"><i style="width:${(100 * (1 - k.free / k.total)).toFixed(1)}%"></i></div><span>${gb(k.free).toFixed(0)} GB FREE</span></div>`).join('');
+
+  // squad
+  const key = d.k3s.nodes.map((n) => n.name).join('|');
+  if (key !== S.nodeKey) {
+    S.nodeKey = key;
+    $('#squadRows').innerHTML = d.k3s.nodes.map((n, i) => `<div class="marine" id="m${i}"><div><div class="cs engr"></div><div class="sub"></div><div class="st"></div></div><canvas width="330" height="78"></canvas><div class="v"><b></b><span>CPU</span><div class="bar c"><i></i></div><span>MEM</span><div class="bar m"><i></i></div></div></div>`).join('');
+  }
+  d.k3s.nodes.forEach((n, i) => {
+    const el = $('#m' + i); if (!el) return;
+    el.classList.toggle('dead', !n.ready);
+    el.querySelector('.cs').textContent = n.name;
+    el.querySelector('.sub').textContent = n.ip || '';
+    el.querySelector('.st').textContent = n.ready ? `${n.cp ? 'COMMAND' : n.gpu ? 'GUNNER' : 'READY'} // ${n.arch}` : 'FLATLINE';
+    el.querySelector('.v b').textContent = n.cpuPct === null ? 'NO VITALS FEED' : `${n.cpuPct} PCT  //  ${n.memPct} PCT`;
+    el.querySelector('.bar.c i').style.width = (n.cpuPct || 0) + '%';
+    el.querySelector('.bar.m i').style.width = (n.memPct || 0) + '%';
+  });
+  const ready = d.k3s.nodes.filter((n) => n.ready);
+  $('#squadSub').textContent = `// TURING K3S  ${ready.length}/${d.k3s.nodes.length} RESPONDING`;
+  setSeg($('#sContacts'), d.k3s.up ? d.k3s.nodes.length : null);
+  setSeg($('#sPods'), d.k3s.up ? Math.min(999, d.k3s.pods.running) : null, ' ');
+  const near = ready.filter((n) => n.cpuPct !== null).map((n) => rangeM(n.cpuPct));
+  setSeg($('#sRange'), near.length ? Math.round(Math.min(...near)) : null);
+
+  // bishop
+  const o = d.ollama;
+  const st = $('#biState');
+  st.classList.toggle('off', !o.up);
+  st.textContent = !o.up ? 'OFFLINE' : o.loaded.length ? 'ACTIVE // MODEL IN MEMORY' : 'ONLINE // STANDING BY';
+  $('#biModels').innerHTML = o.loaded.length
+    ? o.loaded.map((m) => `<div class="mdl"><span>${esc(m.name)}</span><span>${gb(m.vram).toFixed(1)} GB${m.expires ? ' // T-' + dur(Math.max(0, (m.expires - d.ts) / 1000)) : ''}</span></div>`).join('')
+    : `<div class="idle">${o.up ? 'NO MODELS IN MEMORY. I PREFER THE TERM ARTIFICIAL PERSON MYSELF.' : 'NO RESPONSE ON 11434.'}</div>`
+      + (o.models || []).slice(0, 5).map((m) => `<div class="mdl" style="opacity:.62"><span>${esc(m.name)}</span><span>${gb(m.size).toFixed(1)} GB // ARMORY</span></div>`).join('');
+  $('#biInst').textContent = `${o.installed} MODELS IN ARMORY`;
+  const held = o.loaded.reduce((s, m) => s + m.vram, 0);
+  $('#biVram').textContent = `${gb(held).toFixed(1)} GB HELD`;
+  setBar('#bBi', g ? 100 * (held / 2 ** 20) / g.memTotal : 0);
+
+  // targets: top processes (sqrt bars so one busy thread on a 16-thread machine is still visible)
+  const pr = d.procs || { n: 0, cpu: [], ram: [] };
+  setSeg($('#sProcs'), pr.n || null, ' ');
+  const prow = (name, w, val) => `<div class="p"><span>${esc(name)}</span><div class="bar${w > 60 ? ' red' : ''}"><i style="width:${w.toFixed(1)}%"></i></div><span>${val}</span></div>`;
+  const fill = (rows) => rows.concat(Array(Math.max(0, 5 - rows.length)).fill(prow('--', 0, '')));
+  $('#tgCpu').innerHTML = fill(pr.cpu.map((p) => prow(p.name, 100 * Math.sqrt(Math.min(100, p.pct) / 100), p.pct.toFixed(1)))).join('');
+  $('#tgRam').innerHTML = fill(pr.ram.map((p) => prow(p.name, 100 * Math.sqrt(Math.min(1, p.bytes / d.mem.total)), gb(p.bytes).toFixed(1)))).join('');
+
+  // casualty report
+  const k = d.k3s, argo = k.argo || { total: 0, ok: 0, bad: [] }, warn = k.warnings || { count: 0, recent: [] };
+  setSeg($('#sArgo'), k.up && argo.total ? argo.ok : null, ' ');
+  $('#lArgo').textContent = `ARGO SYNCED / ${argo.total}`;
+  setSeg($('#sDown'), k.up ? Math.min(99, k.pods.bad.length) : null);
+  setSeg($('#sWarn'), k.up ? Math.min(99, warn.count) : null);
+  $('#cArgo').classList.toggle('bad', argo.bad.length > 0);
+  $('#cDown').classList.toggle('bad', k.pods.bad.length > 0);
+  $('#cWarn').classList.toggle('bad', warn.count > 0);
+  const inc = [
+    ...argo.bad.map((a) => ({ t: `argo/${a.name}`, r: `${a.sync} / ${a.health}`, crit: true })),
+    ...k.pods.bad.map((p) => ({ t: `${p.ns}/${p.name}`, r: p.status, crit: true })),
+    ...warn.recent.map((w) => ({ t: `${w.ns}/${w.obj}`, r: w.reason, crit: true })),
+  ].slice(0, 7);
+  const rs = (k.pods.restarts || []).slice(0, Math.max(0, 7 - inc.length - (inc.length ? 1 : 0)));
+  $('#incidents').innerHTML =
+    (inc.length ? inc.map((x) => `<div class="l crit"><span>${esc(x.t)}</span><span>${esc(x.r)}</span></div>`).join('') : `<div class="ok">${k.up ? 'NO CASUALTIES' : 'NO UPLINK'}</div>`)
+    + (rs.length ? `<div class="hd"><span>MOST RESTARTS</span><span>COUNT</span></div>` + rs.map((p) => `<div class="l"><span>${esc(p.name)}</span><span>${p.n}</span></div>`).join('') : '');
+
+  // ticker
+  $('#ticker').innerHTML = d.log.slice(0, 5).map((l) => { const t = new Date(l.t); return `<span class="e${l.lvl === 'crit' ? ' crit' : ''}"><b>${pad2(t.getHours())}:${pad2(t.getMinutes())}:${pad2(t.getSeconds())}</b>${esc(l.msg)}</span>`; }).join('');
+}
+
+// busier node = closer contact
+// sqrt scale: a mostly idle cluster still spreads across the scope instead of hugging the outer ring
+const rangeM = (cpuPct) => 2 + (1 - Math.sqrt(Math.min(100, cpuPct) / 100)) * 38;
+
+// ---------- motion tracker / Lament face
+const trk = $('#trk'), tx = trk.getContext('2d');
+function drawTracker(now) {
+  const w = trk.width, h = trk.height, ox = w / 2, oy = h - 16, R = h - 44;
+  tx.clearRect(0, 0, w, h);
+  const bg = tx.createRadialGradient(ox, oy, 10, ox, oy, R);
+  bg.addColorStop(0, `rgba(${COLD},.13)`); bg.addColorStop(1, `rgba(${COLD},0)`);
+  tx.fillStyle = bg; tx.fillRect(0, 0, w, h);
+
+  // Lament Configuration filigree, etched in brass behind the scope
+  tx.save(); tx.translate(ox, oy); tx.strokeStyle = `rgba(${BRASS},.20)`; tx.lineWidth = 1.2;
+  const rot = now / 60000;
+  for (let k = 0; k < 24; k++) { // petal ring
+    const a = rot + k * Math.PI / 12;
+    tx.beginPath(); tx.arc(Math.cos(a) * R * .625, Math.sin(a) * R * .625, R * .125, 0, Math.PI * 2); tx.stroke();
+  }
+  for (let k = 0; k < 2; k++) { // interlocked squares
+    tx.save(); tx.rotate(-rot * 1.5 + k * Math.PI / 4); tx.strokeRect(-R * .354, -R * .354, R * .708, R * .708); tx.restore();
+  }
+  tx.beginPath(); // eight-point star
+  for (let k = 0; k <= 16; k++) { const a = rot * 2 + k * Math.PI / 8, r = k % 2 ? R * .09 : R * .24; tx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+  tx.stroke();
+  for (let k = 0; k < 48; k++) { // outer teeth
+    const a = k * Math.PI / 24; tx.beginPath(); tx.moveTo(Math.cos(a) * R * .94, Math.sin(a) * R * .94); tx.lineTo(Math.cos(a) * R, Math.sin(a) * R); tx.stroke();
+  }
+  tx.restore();
+
+  // scope rings and spokes
+  tx.strokeStyle = `rgba(${COLD},.30)`; tx.lineWidth = 1;
+  for (let k = 1; k <= 4; k++) { tx.beginPath(); tx.arc(ox, oy, R * k / 4, Math.PI, Math.PI * 2); tx.stroke(); }
+  for (let deg = -75; deg <= 75; deg += 15) {
+    const a = deg * Math.PI / 180;
+    tx.beginPath(); tx.moveTo(ox + Math.sin(a) * R * .12, oy - Math.cos(a) * R * .12); tx.lineTo(ox + Math.sin(a) * R, oy - Math.cos(a) * R);
+    tx.strokeStyle = `rgba(${COLD},${deg === 0 ? .34 : .12})`; tx.stroke();
+  }
+  tx.font = '12px Bahnschrift'; tx.fillStyle = `rgba(${COLD},.5)`; tx.textAlign = 'left';
+  for (let k = 1; k <= 4; k++) tx.fillText(`${k * 10}M`, ox + 5, oy - R * k / 4 + 14);
+
+  // expanding pulse
+  const t = (now % 2400) / 2400;
+  for (let k = 0; k < 5; k++) {
+    const rr = R * t - k * 7; if (rr <= 0) continue;
+    tx.beginPath(); tx.arc(ox, oy, rr, Math.PI, Math.PI * 2);
+    tx.strokeStyle = `rgba(${COLD},${(1 - t) * (.85 - k * .17)})`; tx.lineWidth = k ? 2 : 3; tx.stroke();
+  }
+
+  // contacts
+  const nodes = S.d ? S.d.k3s.nodes : [];
+  const placed = []; // label boxes already drawn this frame
+  nodes.forEach((n, i) => {
+    const a = (nodes.length > 1 ? -42 + i * 84 / (nodes.length - 1) : 0) * Math.PI / 180;
+    const lost = !n.ready;
+    const rn = lost ? .96 : (rangeM(n.cpuPct === null ? 0 : n.cpuPct) / 40) * .92 + Math.sin(now / 900 + i * 1.7) * .008;
+    const x = ox + Math.sin(a) * R * rn, y = oy - Math.cos(a) * R * rn;
+    const age = (((t - rn) % 1) + 1) % 1;
+    const b = lost ? (Math.floor(now / 500) % 2 ? 1 : .15) : Math.exp(-age * 2.4);
+    const col = lost ? RED : COLD;
+    const sz = (9 + b * 16) * Math.max(.62, R / 440); // blips scale with the scope
+    const gr = tx.createRadialGradient(x, y, 0, x, y, sz);
+    gr.addColorStop(0, `rgba(${col},${.35 + b * .65})`); gr.addColorStop(.35, `rgba(${col},${.12 + b * .4})`); gr.addColorStop(1, `rgba(${col},0)`);
+    tx.fillStyle = gr; tx.beginPath(); tx.arc(x, y, sz, 0, Math.PI * 2); tx.fill();
+    tx.fillStyle = `rgba(${col},${.5 + b * .5})`; tx.font = '11px Bahnschrift'; tx.textAlign = 'center';
+    // try above, below, then further out, and take the first spot no other hostname occupies
+    const text = lost ? `${n.name.toUpperCase()} LOST` : n.name.toUpperCase();
+    const tw = tx.measureText(text).width / 2 + 3;
+    const lx = Math.max(tw, Math.min(w - tw, x));
+    const base = 9 * Math.max(.62, R / 440) + 5; // offset from the blip's resting size so labels don't bob with the pulse
+    let ly = y - base;
+    for (const c of [y - base, y + base + 9, y - base - 13, y + base + 22]) {
+      if (!placed.some((p) => Math.abs(p.x - lx) < p.w + tw && Math.abs(p.y - c) < 12)) { ly = c; break; }
+    }
+    placed.push({ x: lx, y: ly, w: tw });
+    tx.fillText(text, lx, ly);
+  });
+
+  // grain
+  for (let k = 0; k < 70; k++) { tx.fillStyle = `rgba(${COLD},${Math.random() * .12})`; tx.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5); }
+  if (!S.d || !S.d.k3s.up) { tx.fillStyle = `rgba(${RED},.9)`; tx.font = '22px Bahnschrift'; tx.textAlign = 'center'; tx.fillText('NO UPLINK', ox, oy - R * .5); }
+}
+
+// ---------- CPU pin grid: one nail per thread, driven deeper with load
+const pc = $('#pinc'), px = pc.getContext('2d');
+const pinLv = [];
+function drawPins() {
+  const w = pc.width, h = pc.height, cores = S.d ? S.d.cpu.cores : [];
+  px.clearRect(0, 0, w, h);
+  const n = cores.length || 16, cols = Math.ceil(n / 2), cw = w / cols, rows = [h * .50, h * .97];
+  px.strokeStyle = `rgba(${BRASS},.22)`; px.lineWidth = 1;
+  for (const y of rows) { px.beginPath(); px.moveTo(0, y - .5); px.lineTo(w, y - .5); px.stroke(); }
+  for (let c = 0; c <= cols; c++) { const x = Math.min(w - .5, Math.round(c * cw) + .5); px.beginPath(); px.moveTo(x, 0); px.lineTo(x, h); px.stroke(); }
+  for (let i = 0; i < n; i++) {
+    pinLv[i] = (pinLv[i] ?? 0) + (((cores[i] || 0) / 100) - (pinLv[i] ?? 0)) * .12;
+    const v = pinLv[i], x = (i % cols + .5) * cw, base = rows[i < cols ? 0 : 1] - 2, len = 10 + v * (h * .47 - 22);
+    const hot = v > .75 ? RED : v > .4 ? '243,217,146' : BRASS;
+    const grd = px.createLinearGradient(0, base, 0, base - len);
+    grd.addColorStop(0, `rgba(${BRASS},.25)`); grd.addColorStop(1, `rgba(${hot},1)`);
+    px.strokeStyle = grd; px.lineWidth = 2.2; px.beginPath(); px.moveTo(x, base); px.lineTo(x, base - len); px.stroke();
+    px.fillStyle = `rgba(${hot},1)`; px.shadowColor = `rgba(${hot},.9)`; px.shadowBlur = 8;
+    px.beginPath(); px.ellipse(x, base - len, 5, 2.4, 0, 0, Math.PI * 2); px.fill(); px.shadowBlur = 0;
+  }
+}
+
+// ---------- squad EKG (sweep style)
+function ecg(p) {
+  const g = (c, wd, a) => a * Math.exp(-((p - c) ** 2) / (2 * wd * wd));
+  return g(.18, .025, .12) - g(.27, .008, .18) + g(.30, .010, 1) - g(.335, .010, .28) + g(.55, .04, .22);
+}
+function drawEkg(dt) {
+  if (!S.d) return;
+  S.d.k3s.nodes.forEach((n, i) => {
+    const el = $('#m' + i); if (!el) return;
+    const c = el.querySelector('canvas'), x = c.getContext('2d'), w = c.width, h = c.height;
+    const k = S.ekg[n.name] || (S.ekg[n.name] = { buf: new Float32Array(w), pos: 0, ph: Math.random() });
+    if (k.buf.length !== w) k.buf = new Float32Array(w);
+    const bpm = n.ready ? 48 + (n.cpuPct === null ? 12 : n.cpuPct * 1.4) : 0;
+    const steps = Math.max(1, Math.round(dt * 110));
+    for (let s = 0; s < steps; s++) {
+      k.ph = (k.ph + (bpm / 60) * (dt / steps)) % 1;
+      k.buf[k.pos] = n.ready ? ecg(k.ph) + (Math.random() - .5) * .03 : (Math.random() - .5) * .015;
+      k.pos = (k.pos + 1) % w;
+    }
+    x.clearRect(0, 0, w, h);
+    x.strokeStyle = `rgba(${BRASS},.10)`; x.lineWidth = 1;
+    for (let gx = 0; gx < w; gx += 33) { x.beginPath(); x.moveTo(gx + .5, 0); x.lineTo(gx + .5, h); x.stroke(); }
+    x.beginPath(); x.moveTo(0, h * .62 + .5); x.lineTo(w, h * .62 + .5); x.stroke();
+    const col = n.ready ? COLD : RED;
+    const Y = (v) => h * .62 - v * h * .52;
+    for (let seg = 0; seg < w - 1; seg += 11) { // fade with age behind the sweep head
+      const age = ((k.pos - seg) % w + w) % w;
+      if (age < 14 && age > 0) continue;
+      x.beginPath();
+      for (let j = seg; j <= Math.min(w - 1, seg + 11); j++) { if (j === k.pos) break; j === seg ? x.moveTo(j, Y(k.buf[j])) : x.lineTo(j, Y(k.buf[j])); }
+      x.strokeStyle = `rgba(${col},${Math.max(.12, 1 - age / w)})`; x.lineWidth = 1.8; x.shadowColor = `rgba(${col},.8)`; x.shadowBlur = 6; x.stroke();
+    }
+    x.shadowBlur = 0;
+    const hp = (k.pos - 1 + w) % w;
+    x.fillStyle = `rgba(${col},1)`; x.beginPath(); x.arc(hp, Y(k.buf[hp]), 2.6, 0, Math.PI * 2); x.fill();
+  });
+}
+
+// ---------- hooked chains between panels
+const chains = ['#ch0', '#ch1', '#ch2'].map((id, i) => ({ c: $(id), len: [560, 610, 520][i], ph: i * 2.1 }));
+function drawChains(now) {
+  for (const ch of chains) {
+    const x = ch.c.getContext('2d'), w = ch.c.width;
+    x.clearRect(0, 0, w, ch.c.height);
+    const sway = (y) => w / 2 + Math.sin(now / 2300 + ch.ph + y / 190) * 3.2 * (y / ch.len);
+    x.lineWidth = 2; x.shadowColor = `rgba(${BRASS},.5)`; x.shadowBlur = 4;
+    let y = 0, k = 0;
+    for (; y < ch.len; y += 13, k++) {
+      const cx = sway(y + 8);
+      x.strokeStyle = `rgba(${BRASS},${.45 + .2 * Math.sin(k * 1.3 + now / 1700)})`;
+      x.beginPath();
+      if (k % 2) { x.moveTo(cx, y); x.lineTo(cx, y + 17); } else x.ellipse(cx, y + 8, 4.2, 8.5, 0, 0, Math.PI * 2);
+      x.stroke();
+    }
+    const hx0 = sway(y); // the hook
+    x.strokeStyle = `rgba(${BRASS},.85)`; x.lineWidth = 2.6;
+    x.beginPath(); x.moveTo(hx0, y - 2); x.lineTo(hx0, y + 14); x.arc(hx0 - 7, y + 14, 7, 0, Math.PI * .95); x.stroke();
+    x.shadowBlur = 0;
+  }
+}
+
+// ---------- Leviathan, turning slowly over the banner
+function drawLev(now) {
+  document.querySelectorAll('.lev').forEach((c, i) => {
+    const x = c.getContext('2d'), w = c.width, h = c.height, th = now / 1600 * (i ? -1 : 1);
+    x.clearRect(0, 0, w, h); x.save(); x.translate(w / 2, h / 2);
+    const crit = $('#banner').classList.contains('crit'), col = crit ? RED : BRASS;
+    const eq = [0, 1, 2, 3].map((k) => ({ x: Math.cos(th + k * Math.PI / 2) * 11, y: Math.sin(th + k * Math.PI / 2) * 3, z: Math.sin(th + k * Math.PI / 2) }));
+    for (const tip of [-17, 17]) for (const p of eq) { x.strokeStyle = `rgba(${col},${p.z > 0 ? .95 : .3})`; x.lineWidth = p.z > 0 ? 1.6 : 1; x.beginPath(); x.moveTo(0, tip); x.lineTo(p.x, p.y); x.stroke(); }
+    eq.forEach((p, k) => { const q = eq[(k + 1) % 4]; x.strokeStyle = `rgba(${col},${(p.z + q.z) > 0 ? .95 : .3})`; x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(q.x, q.y); x.stroke(); });
+    x.restore();
+  });
+}
+
+// ---------- frame loop (30 fps is plenty and easy on the iGPU)
+let lastFrame = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (now - lastFrame < 31) return;
+  const dt = Math.min(.1, (now - lastFrame) / 1000); lastFrame = now;
+  drawTracker(now); drawPins(); drawEkg(dt); drawChains(now); drawLev(now);
+  const t = new Date();
+  $('#clock').textContent = `${pad2(t.getHours())}:${pad2(t.getMinutes())}:${pad2(t.getSeconds())}`;
+  $('#date').textContent = `${t.getFullYear()}.${pad2(t.getMonth() + 1)}.${pad2(t.getDate())}`;
+  if (S.last && now - S.last > 5000) { $('#banner').classList.add('crit'); $('#bannerText').textContent = 'TAC-NET UPLINK LOST // THE BOX IS CLOSED'; }
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

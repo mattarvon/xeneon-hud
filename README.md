@@ -19,6 +19,11 @@ recovered from the Labyrinth: ALIENS (1986) crossed with HELLRAISER (1987).
     .\Start-Hud.ps1    # server + borderless window on the Edge (safe to re-run)
     .\Stop-Hud.ps1
     .\Set-EdgeBrightness.ps1 -Percent 60   # hardware backlight over DDC/CI; no argument = show current
+    .\Install-Autostart.ps1 -Brightness 60 # start at login (Startup-folder shortcut); -Remove to undo
+
+At login `Start-Hud-AtLogin.ps1` waits for the Edge to enumerate and for iCUE to start, launches the HUD,
+sets the backlight, then re-asserts topmost at +30 s, +90 s and +210 s in case iCUE comes up late.
+It logs to `login.log`. `Start-Hud.ps1 -TopmostOnly` puts a buried HUD back on top without relaunching it.
 
 `server.js` is dependency-free Node, binds 127.0.0.1:1986 only, and pushes one JSON snapshot a
 second over SSE (`/api/stream`; `/api/telemetry` for a one-shot). `index.html` is the whole front end.

@@ -1,12 +1,14 @@
 # Starts the TAC-NET telemetry server (if not already up) and opens the HUD
 # borderless on the Xeneon Edge. Safe to re-run: it replaces the old HUD window.
+#   -TopmostOnly   leave the running HUD alone and just put it back on top of iCUE
+param([switch]$TopmostOnly)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $cfg  = Get-Content "$root\config.local.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
 $port = if ($cfg.port) { $cfg.port } else { 1986 }
 
 # --- server
-if (-not (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)) {
+if (-not $TopmostOnly -and -not (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)) {
     Start-Process node -ArgumentList 'server.js' -WorkingDirectory $root -WindowStyle Hidden `
         -RedirectStandardOutput "$root\server.log" -RedirectStandardError "$root\server.err.log"
     foreach ($i in 1..20) {
@@ -42,20 +44,22 @@ $browser = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:Pr
 if (-not $browser) { throw 'Neither Chrome nor Edge found.' }
 $profileDir = "$root\.chrome-profile"
 
-# close a previous HUD window (matched by its dedicated profile dir, so normal browsing is untouched)
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match [regex]::Escape($profileDir) } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-Start-Sleep -Milliseconds 800
+if (-not $TopmostOnly) {
+    # close a previous HUD window (matched by its dedicated profile dir, so normal browsing is untouched)
+    Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match [regex]::Escape($profileDir) } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Milliseconds 800
 
-Start-Process $browser -ArgumentList @(
-    "--app=http://127.0.0.1:$port/", "--user-data-dir=`"$profileDir`"",
-    "--window-position=$($b.X),$($b.Y)", "--window-size=$($b.Width),$($b.Height)", '--kiosk',
-    '--no-first-run', '--no-default-browser-check', '--disable-session-crashed-bubble',
-    '--disable-features=Translate,msEdgeSidebarV2', '--disable-pinch', '--overscroll-history-navigation=0'
-)
+    Start-Process $browser -ArgumentList @(
+        "--app=http://127.0.0.1:$port/", "--user-data-dir=`"$profileDir`"",
+        "--window-position=$($b.X),$($b.Y)", "--window-size=$($b.Width),$($b.Height)", '--kiosk',
+        '--no-first-run', '--no-default-browser-check', '--disable-session-crashed-bubble',
+        '--disable-features=Translate,msEdgeSidebarV2', '--disable-pinch', '--overscroll-history-navigation=0'
+    )
+    Start-Sleep -Seconds 4
+}
 
 # --- verify it landed on the Edge; Chrome's own placement can miss on mixed-DPI desktops
-Start-Sleep -Seconds 4
 $pids = @(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match [regex]::Escape($profileDir) } | ForEach-Object { [uint32]$_.ProcessId })
 $script:hud = [IntPtr]::Zero
 $cb = [HudWin+EnumProc] {

@@ -9,7 +9,7 @@ recovered from the Labyrinth: ALIENS (1986) crossed with HELLRAISER (1987).
 | Targets | what is eating the rig: top 5 process names by CPU and by RAM, plus process count (`procs.ps1`) |
 | M314 Tracker (compact, Lament Configuration face) | K3s nodes as contacts; busier node = closer |
 | Pin Grid | one nail per CPU thread, plus fan, clock, net, disks |
-| Squad Vitals | one EKG per K3s node, heart rate follows CPU; NotReady = flatline |
+| Node Vitals | real data per K3s node, scraped straight from each node-exporter (`:9100`) every 5 s: live 5-minute CPU trace, per-core bars, CPU and temp counters, load, memory, disk, net, disk I/O, pods. NotReady = flatline |
 | Bishop | Ollama: loaded models, VRAM held, armory |
 | Casualty Report | K3s trouble board: Argo CD synced count, pods down, Warning events in the last hour, most-restarted pods |
 | ISS Piss Tank (header) | NASA ISS live telemetry over Lightstreamer, item `NODE3000005`; port of `E:\projects\iss-piss-o-meter`. Preview states with `?iss=87` |
@@ -20,6 +20,7 @@ recovered from the Labyrinth: ALIENS (1986) crossed with HELLRAISER (1987).
     .\Stop-Hud.ps1
     .\Set-EdgeBrightness.ps1 -Percent 60   # hardware backlight over DDC/CI; no argument = show current
     .\Install-Autostart.ps1 -Brightness 60 # start at login (Startup-folder shortcut); -Remove to undo
+    .\Capture-Edge.ps1                     # screenshot what is really on the Edge -> shots\live.png (gitignored)
 
 At login `Start-Hud-AtLogin.ps1` waits for the Edge to enumerate and for iCUE to start, launches the HUD,
 sets the backlight, then re-asserts topmost at +30 s, +90 s and +210 s in case iCUE comes up late.

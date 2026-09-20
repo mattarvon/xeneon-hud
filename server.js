@@ -234,20 +234,22 @@ async function sampleK3s() {
 }
 
 async function sampleK3sPods() {
-  const raw = await kubectl(['get', 'pods', '-A', '--no-headers']);
+  const raw = await kubectl(['get', 'pods', '-A', '-o', 'wide', '--no-headers']);
   if (!raw) return;
-  let total = 0; let running = 0; const bad = []; const restarts = [];
+  let total = 0; let running = 0; const bad = []; const restarts = []; const byNode = {};
   for (const line of raw.split('\n')) {
-    const f = line.trim().split(/\s+/);
+    // RESTARTS can read "6 (3d ago)"; drop the parenthetical so the later columns stay aligned
+    const f = line.replace(/\(.*?\)/g, '').trim().split(/\s+/);
     if (f.length < 5) continue;
     total++;
     if (f[3] === 'Running') running++;
     else if (f[3] !== 'Completed') bad.push({ ns: f[0], name: f[1], status: f[3] });
-    const r = parseInt(f[4], 10); // RESTARTS column reads "6 (3d ago)"
+    const r = parseInt(f[4], 10);
     if (r > 0) restarts.push({ ns: f[0], name: f[1], n: r });
+    if (f[7] && f[3] === 'Running') byNode[f[7]] = (byNode[f[7]] || 0) + 1;
   }
   restarts.sort((a, b) => b.n - a.n);
-  T.k3s.pods = { total, running, bad: bad.slice(0, 8), restarts: restarts.slice(0, 6) };
+  T.k3s.pods = { total, running, bad: bad.slice(0, 8), restarts: restarts.slice(0, 6), byNode };
 }
 
 // ---------------------------------------------------------------- K3s trouble board
@@ -285,6 +287,98 @@ async function sampleWarnings() {
     reason: e.reason, obj: `${e.involvedObject.kind}/${e.involvedObject.name}`, ns: e.involvedObject.namespace || e.metadata.namespace,
   })).filter((e) => e.t >= cutoff).sort((a, b) => b.t - a.t);
   T.k3s.warnings = { count: recent.length, recent: recent.slice(0, 4) };
+}
+
+// ---------------------------------------------------------------- Live per-node metrics
+// Scrapes each node's node-exporter (hostNetwork :9100) directly every few seconds and derives rates here.
+// Prometheus holds the same series but only samples every 30 s or so, which is a slideshow, not telemetry.
+const NX_INTERVAL = 5000; // light enough that scraping does not show up as load on the RK1s
+const NX_HIST = 60; // 5 minutes of CPU history per node
+const NX_PHYS_NIC = /^(lo|veth|cni|flannel|docker|kube|br|cali|tun|virbr)/;
+const NX_WHOLE_DISK = /^(mmcblk\d+|nvme\d+n\d+|sd[a-z]+|vd[a-z]+)$/;
+const nxState = {}; // node name -> { prev, hist, fails }
+
+function nxParse(text) {
+  const s = { cpu: {}, rx: 0, tx: 0, rd: 0, wr: 0, temp: null, mhzSum: 0, mhzN: 0 };
+  for (const line of text.split('\n')) {
+    if (line.charCodeAt(0) !== 110 /* n */ || !line.startsWith('node_')) continue;
+    const sp = line.lastIndexOf(' ');
+    const v = parseFloat(line.slice(sp + 1));
+    if (!Number.isFinite(v)) continue;
+    const head = line.slice(0, sp);
+    const brace = head.indexOf('{');
+    const name = brace < 0 ? head : head.slice(0, brace);
+    const label = (k) => { const m = head.match(new RegExp(`${k}="([^"]*)"`)); return m ? m[1] : ''; };
+    switch (name) {
+      case 'node_cpu_seconds_total': {
+        const c = s.cpu[label('cpu')] || (s.cpu[label('cpu')] = { idle: 0, total: 0 });
+        c.total += v;
+        if (label('mode') === 'idle') c.idle += v;
+        break;
+      }
+      case 'node_load1': s.load1 = v; break;
+      case 'node_memory_MemTotal_bytes': s.memTotal = v; break;
+      case 'node_memory_MemAvailable_bytes': s.memAvail = v; break;
+      case 'node_network_receive_bytes_total': if (!NX_PHYS_NIC.test(label('device'))) s.rx += v; break;
+      case 'node_network_transmit_bytes_total': if (!NX_PHYS_NIC.test(label('device'))) s.tx += v; break;
+      case 'node_disk_read_bytes_total': if (NX_WHOLE_DISK.test(label('device'))) s.rd += v; break;
+      case 'node_disk_written_bytes_total': if (NX_WHOLE_DISK.test(label('device'))) s.wr += v; break;
+      case 'node_filesystem_size_bytes': if (label('mountpoint') === '/' && !/tmpfs|overlay|squashfs/.test(label('fstype'))) s.fsSize = v; break;
+      case 'node_filesystem_avail_bytes': if (label('mountpoint') === '/' && !/tmpfs|overlay|squashfs/.test(label('fstype'))) s.fsAvail = v; break;
+      // boards expose temps differently (hwmon vs thermal zones); keep the hottest sane sensor
+      case 'node_hwmon_temp_celsius':
+      case 'node_thermal_zone_temp': if (v > 0 && v < 125 && (s.temp === null || v > s.temp)) s.temp = v; break;
+      case 'node_cpu_scaling_frequency_hertz': s.mhzSum += v / 1e6; s.mhzN++; break;
+      default:
+    }
+  }
+  return s;
+}
+
+async function nxScrape(n) {
+  const st = nxState[n.name] || (nxState[n.name] = { prev: null, hist: [], fails: 0 });
+  try {
+    const res = await fetch(`http://${n.ip}:9100/metrics`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    const cur = nxParse(await res.text());
+    cur.t = Date.now();
+    const p = st.prev;
+    st.prev = cur;
+    st.fails = 0;
+    if (!p) return null;
+    const dt = (cur.t - p.t) / 1000;
+    const rate = (a, b) => (b >= a && dt > 0 ? (b - a) / dt : 0); // counters reset on reboot
+    const cores = Object.keys(cur.cpu).sort((a, b) => a - b).map((k) => {
+      const a = p.cpu[k]; const b = cur.cpu[k];
+      if (!a) return 0;
+      const dTotal = b.total - a.total;
+      return dTotal > 0 ? Math.max(0, Math.min(100, Math.round(100 * (1 - (b.idle - a.idle) / dTotal)))) : 0;
+    });
+    const cpu = cores.length ? Math.round(10 * cores.reduce((x, y) => x + y, 0) / cores.length) / 10 : 0;
+    st.hist.push([cur.t, cpu]);
+    if (st.hist.length > NX_HIST) st.hist.shift();
+    return {
+      cpu, cores, hist: st.hist,
+      tempC: cur.temp, load1: cur.load1,
+      mem: cur.memTotal ? Math.round(1000 * (1 - cur.memAvail / cur.memTotal)) / 10 : null,
+      disk: cur.fsSize ? Math.round(1000 * (1 - cur.fsAvail / cur.fsSize)) / 10 : null,
+      rx: rate(p.rx, cur.rx), tx: rate(p.tx, cur.tx), io: rate(p.rd, cur.rd) + rate(p.wr, cur.wr),
+      mhz: cur.mhzN ? Math.round(cur.mhzSum / cur.mhzN) : null,
+    };
+  } catch {
+    st.fails++;
+    st.prev = null; // a gap would make the next rate wrong
+    return st.fails >= 3 ? { stale: true, hist: st.hist } : undefined; // undefined = keep last good reading
+  }
+}
+
+async function sampleNx() {
+  const nodes = T.k3s.nodes.filter((n) => n.ip);
+  const results = await Promise.all(nodes.map(nxScrape));
+  const nx = { ...(T.k3s.nx || {}) };
+  nodes.forEach((n, i) => { if (results[i]) nx[n.name] = results[i]; });
+  for (const name of Object.keys(nx)) if (!nodes.some((n) => n.name === name)) delete nx[name];
+  T.k3s.nx = nx;
 }
 
 // ---------------------------------------------------------------- Top processes
@@ -442,6 +536,7 @@ every(3000, sampleOllama);
 every(60000, sampleOllamaTags);
 every(15000, sampleK3s);
 every(30000, sampleK3sPods);
+setTimeout(() => every(NX_INTERVAL, sampleNx), 4000); // after the first node list, which supplies the IPs
 every(30000, sampleArgo);
 every(30000, sampleWarnings);
 startProcs();

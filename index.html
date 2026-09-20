@@ -54,7 +54,7 @@ footer .e.crit{color:var(--red);text-shadow:0 0 10px rgba(255,36,20,.7)}
 
 /* ---------- layout */
 main{position:absolute;left:16px;right:16px;top:54px;bottom:42px;display:grid;
-  grid-template-columns:590px 750px 1fr 440px;gap:30px}
+  grid-template-columns:590px 750px 1fr 400px;gap:30px}
 .col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .panel{position:relative;flex:1;min-height:0;border:1px solid var(--line);
   background:linear-gradient(180deg,rgba(210,168,78,.055),rgba(210,168,78,.012) 40%,rgba(142,11,6,.05));
@@ -122,18 +122,21 @@ canvas.chain{position:absolute;top:46px;width:30px;height:640px}
 .sys .r{display:grid;grid-template-columns:58px 1fr 100px;align-items:center;gap:9px;font-size:13.5px}
 .sys .r span:last-child{text-align:right;color:var(--brass-hi);font-variant-numeric:tabular-nums}
 
-/* ---------- squad */
+/* ---------- node vitals: live node-exporter data per K3s host */
 #squadRows{display:flex;flex-direction:column;height:calc(100% - 30px)}
-.marine{flex:1;display:grid;grid-template-columns:204px 1fr 132px;align-items:center;border-bottom:1px solid var(--line);padding:0 14px 0 18px;min-height:0}
-.marine:last-child{border-bottom:0}
-.marine .cs{font-size:21px;color:var(--brass-hi);line-height:1;white-space:nowrap;letter-spacing:.1em}
-.marine .sub{font-size:12.5px;color:var(--brass-dim);margin-top:5px}
-.marine .st{font-size:12.5px;margin-top:5px;color:var(--cold);text-shadow:0 0 8px rgba(168,236,255,.6)}
-.marine.dead .cs,.marine.dead .st{color:var(--red);text-shadow:0 0 12px rgba(255,36,20,.85)}
-.marine.dead .st{animation:blink 1s infinite steps(1)}
-.marine canvas{width:100%;height:78px;display:block}
-.marine .v{display:grid;grid-template-columns:34px 1fr;gap:5px 8px;align-items:center;font-size:12.5px;color:var(--brass-dim);padding-left:12px}
-.marine .v b{grid-column:1/3;font-weight:400;color:var(--brass-hi);font-size:14px;font-variant-numeric:tabular-nums}
+.nhead,.node{display:grid;grid-template-columns:140px 132px 64px 56px 80px 1fr;column-gap:8px;align-items:center;padding:0 12px 0 18px}
+.nhead{flex:0 0 22px;font-size:11.5px;color:var(--brass-dim);border-bottom:1px solid var(--line)}
+.node{flex:1;min-height:0;border-bottom:1px solid var(--line)}
+.node:last-child{border-bottom:0}
+.node .cs{font-size:17px;color:var(--brass-hi);line-height:1;white-space:nowrap;letter-spacing:.06em}
+.node .sub{font-size:12px;color:var(--brass-dim);margin-top:5px;white-space:nowrap}
+.node .st{font-size:12px;margin-top:4px;color:var(--cold);text-shadow:0 0 8px rgba(168,236,255,.6);white-space:nowrap}
+.node.dead .cs,.node.dead .st{color:var(--red);text-shadow:0 0 12px rgba(255,36,20,.85)}
+.node.dead .st{animation:blink 1s infinite steps(1)}
+.node canvas{display:block}
+.node .seg{font-size:38px}
+.node .ns{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;font-size:12px;color:var(--brass-dim);white-space:nowrap}
+.node .ns b{font-weight:400;color:var(--brass-hi);margin-left:5px;font-variant-numeric:tabular-nums}
 
 /* ---------- bishop */
 #bishop{flex:0 0 262px}
@@ -235,7 +238,7 @@ canvas.chain{position:absolute;top:46px;width:30px;height:640px}
 
     <div class="col">
       <section class="panel" id="squad">
-        <h2 class="engr">SQUAD VITALS <span id="squadSub">// TURING K3S</span></h2>
+        <h2 class="engr">NODE VITALS <span id="squadSub">// TURING K3S</span></h2>
         <div id="squadRows"></div>
       </section>
     </div>
@@ -263,7 +266,7 @@ canvas.chain{position:absolute;top:46px;width:30px;height:640px}
 
   <canvas class="chain" id="ch0" width="30" height="640" style="left:606px"></canvas>
   <canvas class="chain" id="ch1" width="30" height="640" style="left:1386px"></canvas>
-  <canvas class="chain" id="ch2" width="30" height="640" style="left:2074px"></canvas>
+  <canvas class="chain" id="ch2" width="30" height="640" style="left:2114px"></canvas>
 
   <footer id="ticker"></footer>
   <div class="scan"></div><div class="vig"></div>
@@ -323,7 +326,7 @@ function setBar(id, pct) { const i = $(id + ' i'); if (i) i.style.width = Math.m
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- state
-const S = { d: null, last: 0, ekg: {}, nodeKey: '' };
+const S = { d: null, last: 0, coreLv: {}, nodeKey: '' };
 const ISS_PREVIEW = new URLSearchParams(location.search).get('iss'); // design preview only, e.g. ?iss=87
 function ingest(d) {
   if (ISS_PREVIEW !== null) d.iss = { conn: 'live', pct: +ISS_PREVIEW, updated: Date.now() };
@@ -400,27 +403,39 @@ function onData(d) {
   setBar('#bTx', nb(d.net.tx)); $('#tTx').textContent = rate(d.net.tx);
   $('#diskRows').innerHTML = d.disks.map((k) => `<div class="r"><span>DISK ${k.name}</span><div class="bar"><i style="width:${(100 * (1 - k.free / k.total)).toFixed(1)}%"></i></div><span>${gb(k.free).toFixed(0)} GB FREE</span></div>`).join('');
 
-  // squad
+  // node vitals (live node-exporter scrape; falls back to metrics-server numbers if a node has no feed)
+  const nx = d.k3s.nx || {};
   const key = d.k3s.nodes.map((n) => n.name).join('|');
   if (key !== S.nodeKey) {
     S.nodeKey = key;
-    $('#squadRows').innerHTML = d.k3s.nodes.map((n, i) => `<div class="marine" id="m${i}"><div><div class="cs engr"></div><div class="sub"></div><div class="st"></div></div><canvas width="330" height="78"></canvas><div class="v"><b></b><span>CPU</span><div class="bar c"><i></i></div><span>MEM</span><div class="bar m"><i></i></div></div></div>`).join('');
+    $('#squadRows').innerHTML = '<div class="nhead"><span>HOST</span><span>CPU // LIVE 5 MIN</span><span>PER CORE</span><span>CPU PCT</span><span>TEMP F</span><span>LIVE COUNTERS</span></div>'
+      + d.k3s.nodes.map((n, i) => `<div class="node" id="m${i}"><div><div class="cs engr"></div><div class="sub"></div><div class="st"></div></div><canvas class="tr" width="132" height="70"></canvas><canvas class="co" width="64" height="70"></canvas><div class="seg" id="nc${i}" data-n="2"></div><div class="seg" id="nt${i}" data-n="3"></div><div class="ns"><span>LOAD<b class="l"></b></span><span>DN<b class="rx"></b></span><span>MEM<b class="m"></b></span><span>UP<b class="tx"></b></span><span>DISK<b class="d"></b></span><span>IO<b class="io"></b></span></div></div>`).join('');
+    document.querySelectorAll('#squadRows .seg').forEach(initSeg);
   }
+  const pct = (v) => (v === null || v === undefined ? '--' : `${Math.round(v)}%`);
   d.k3s.nodes.forEach((n, i) => {
     const el = $('#m' + i); if (!el) return;
+    const x = nx[n.name], live = x && !x.stale;
+    const pods = (d.k3s.pods.byNode || {})[n.name];
     el.classList.toggle('dead', !n.ready);
     el.querySelector('.cs').textContent = n.name;
-    el.querySelector('.sub').textContent = n.ip || '';
-    el.querySelector('.st').textContent = n.ready ? `${n.cp ? 'COMMAND' : n.gpu ? 'GUNNER' : 'READY'} // ${n.arch}` : 'FLATLINE';
-    el.querySelector('.v b').textContent = n.cpuPct === null ? 'NO VITALS FEED' : `${n.cpuPct} PCT  //  ${n.memPct} PCT`;
-    el.querySelector('.bar.c i').style.width = (n.cpuPct || 0) + '%';
-    el.querySelector('.bar.m i').style.width = (n.memPct || 0) + '%';
+    el.querySelector('.sub').textContent = `${n.ip || ''}${pods === undefined ? '' : ` // ${pods} PODS`}`;
+    el.querySelector('.st').textContent = !n.ready ? 'FLATLINE' : !live ? 'NO EXPORTER FEED'
+      : `${n.cp ? 'COMMAND' : n.gpu ? 'GUNNER' : 'READY'} // ${x.mhz ? `${x.mhz} MHZ` : n.arch}`; // the column only fits one detail
+    setSeg($('#nc' + i), live ? Math.min(99, Math.round(x.cpu)) : n.cpuPct);
+    setSeg($('#nt' + i), live && x.tempC !== null ? toF(x.tempC) : null, ' ');
+    const q = (c, t) => { el.querySelector('.ns .' + c).textContent = t; };
+    q('l', live && x.load1 !== undefined ? x.load1.toFixed(2) : '--');
+    q('m', live ? pct(x.mem) : pct(n.memPct));
+    q('d', live ? pct(x.disk) : '--');
+    q('rx', live ? rate(x.rx) : '--'); q('tx', live ? rate(x.tx) : '--');
+    q('io', live ? (x.io >= 1048576 ? `${(x.io / 1048576).toFixed(1)} MB/S` : `${Math.round(x.io / 1024)} KB/S`) : '--');
   });
   const ready = d.k3s.nodes.filter((n) => n.ready);
   $('#squadSub').textContent = `// TURING K3S  ${ready.length}/${d.k3s.nodes.length} RESPONDING`;
   setSeg($('#sContacts'), d.k3s.up ? d.k3s.nodes.length : null);
   setSeg($('#sPods'), d.k3s.up ? Math.min(999, d.k3s.pods.running) : null, ' ');
-  const near = ready.filter((n) => n.cpuPct !== null).map((n) => rangeM(n.cpuPct));
+  const near = ready.filter((n) => cpuOf(n) !== null).map((n) => rangeM(cpuOf(n)));
   setSeg($('#sRange'), near.length ? Math.round(Math.min(...near)) : null);
 
   // bishop
@@ -470,6 +485,7 @@ function onData(d) {
 
 // busier node = closer contact
 // sqrt scale: a mostly idle cluster still spreads across the scope instead of hugging the outer ring
+const cpuOf = (n) => { const x = S.d && S.d.k3s.nx && S.d.k3s.nx[n.name]; return x && !x.stale ? x.cpu : n.cpuPct; };
 const rangeM = (cpuPct) => 2 + (1 - Math.sqrt(Math.min(100, cpuPct) / 100)) * 38;
 
 // ---------- motion tracker / Lament face
@@ -524,7 +540,7 @@ function drawTracker(now) {
   nodes.forEach((n, i) => {
     const a = (nodes.length > 1 ? -42 + i * 84 / (nodes.length - 1) : 0) * Math.PI / 180;
     const lost = !n.ready;
-    const rn = lost ? .96 : (rangeM(n.cpuPct === null ? 0 : n.cpuPct) / 40) * .92 + Math.sin(now / 900 + i * 1.7) * .008;
+    const rn = lost ? .96 : (rangeM(cpuOf(n) === null ? 0 : cpuOf(n)) / 40) * .92 + Math.sin(now / 900 + i * 1.7) * .008;
     const x = ox + Math.sin(a) * R * rn, y = oy - Math.cos(a) * R * rn;
     const age = (((t - rn) % 1) + 1) % 1;
     const b = lost ? (Math.floor(now / 500) % 2 ? 1 : .15) : Math.exp(-age * 2.4);
@@ -574,41 +590,47 @@ function drawPins() {
   }
 }
 
-// ---------- squad EKG (sweep style)
-function ecg(p) {
-  const g = (c, wd, a) => a * Math.exp(-((p - c) ** 2) / (2 * wd * wd));
-  return g(.18, .025, .12) - g(.27, .008, .18) + g(.30, .010, 1) - g(.335, .010, .28) + g(.55, .04, .22);
-}
-function drawEkg(dt) {
+// ---------- node vitals: real CPU trace (scrolls with the clock) and per-core bars
+const TRACE_MS = 5 * 60 * 1000;
+function drawNodes() {
   if (!S.d) return;
+  const nx = S.d.k3s.nx || {}, nowMs = Date.now();
   S.d.k3s.nodes.forEach((n, i) => {
     const el = $('#m' + i); if (!el) return;
-    const c = el.querySelector('canvas'), x = c.getContext('2d'), w = c.width, h = c.height;
-    const k = S.ekg[n.name] || (S.ekg[n.name] = { buf: new Float32Array(w), pos: 0, ph: Math.random() });
-    if (k.buf.length !== w) k.buf = new Float32Array(w);
-    const bpm = n.ready ? 48 + (n.cpuPct === null ? 12 : n.cpuPct * 1.4) : 0;
-    const steps = Math.max(1, Math.round(dt * 110));
-    for (let s = 0; s < steps; s++) {
-      k.ph = (k.ph + (bpm / 60) * (dt / steps)) % 1;
-      k.buf[k.pos] = n.ready ? ecg(k.ph) + (Math.random() - .5) * .03 : (Math.random() - .5) * .015;
-      k.pos = (k.pos + 1) % w;
+    const x = nx[n.name], live = n.ready && x && !x.stale, col = n.ready ? COLD : RED;
+
+    // trace
+    const tc = el.querySelector('canvas.tr'), t = tc.getContext('2d'), w = tc.width, h = tc.height;
+    t.clearRect(0, 0, w, h);
+    t.strokeStyle = `rgba(${BRASS},.12)`; t.lineWidth = 1;
+    for (let k = 0; k <= 5; k++) { const gx = Math.min(w - .5, Math.round(w * k / 5) + .5); t.beginPath(); t.moveTo(gx, 0); t.lineTo(gx, h); t.stroke(); }
+    t.beginPath(); t.moveTo(0, h - .5); t.lineTo(w, h - .5); t.stroke();
+    const hist = ((x && x.hist) || []).filter((p) => nowMs - p[0] <= TRACE_MS + 10000);
+    if (hist.length > 1) {
+      // auto-scale so an idle node is not a flat line; the ceiling is printed so the trace stays honest
+      const top = Math.max(10, Math.ceil(Math.max(...hist.map((p) => p[1])) * 1.25 / 5) * 5);
+      const X = (ms) => w - (nowMs - ms) / TRACE_MS * w, Y = (v) => h - 2 - Math.min(1, v / top) * (h - 14);
+      t.beginPath(); hist.forEach((p, k) => (k ? t.lineTo(X(p[0]), Y(p[1])) : t.moveTo(X(p[0]), Y(p[1]))));
+      t.strokeStyle = `rgba(${col},.95)`; t.lineWidth = 1.6; t.shadowColor = `rgba(${col},.8)`; t.shadowBlur = 6; t.stroke(); t.shadowBlur = 0;
+      const last = hist[hist.length - 1];
+      t.lineTo(X(last[0]), h); t.lineTo(X(hist[0][0]), h); t.closePath(); t.fillStyle = `rgba(${col},.10)`; t.fill();
+      t.fillStyle = `rgba(${col},1)`; t.beginPath(); t.arc(X(last[0]), Y(last[1]), 2.4, 0, Math.PI * 2); t.fill();
+      t.fillStyle = `rgba(${BRASS},.55)`; t.font = '10px Bahnschrift'; t.textAlign = 'left'; t.fillText(`0-${top}%`, 2, 10);
+    } else if (!n.ready) {
+      t.strokeStyle = `rgba(${RED},.9)`; t.beginPath(); t.moveTo(0, h * .6); t.lineTo(w, h * .6); t.stroke();
     }
-    x.clearRect(0, 0, w, h);
-    x.strokeStyle = `rgba(${BRASS},.10)`; x.lineWidth = 1;
-    for (let gx = 0; gx < w; gx += 33) { x.beginPath(); x.moveTo(gx + .5, 0); x.lineTo(gx + .5, h); x.stroke(); }
-    x.beginPath(); x.moveTo(0, h * .62 + .5); x.lineTo(w, h * .62 + .5); x.stroke();
-    const col = n.ready ? COLD : RED;
-    const Y = (v) => h * .62 - v * h * .52;
-    for (let seg = 0; seg < w - 1; seg += 11) { // fade with age behind the sweep head
-      const age = ((k.pos - seg) % w + w) % w;
-      if (age < 14 && age > 0) continue;
-      x.beginPath();
-      for (let j = seg; j <= Math.min(w - 1, seg + 11); j++) { if (j === k.pos) break; j === seg ? x.moveTo(j, Y(k.buf[j])) : x.lineTo(j, Y(k.buf[j])); }
-      x.strokeStyle = `rgba(${col},${Math.max(.12, 1 - age / w)})`; x.lineWidth = 1.8; x.shadowColor = `rgba(${col},.8)`; x.shadowBlur = 6; x.stroke();
-    }
-    x.shadowBlur = 0;
-    const hp = (k.pos - 1 + w) % w;
-    x.fillStyle = `rgba(${col},1)`; x.beginPath(); x.arc(hp, Y(k.buf[hp]), 2.6, 0, Math.PI * 2); x.fill();
+
+    // per-core bars, eased so they move rather than jump between scrapes
+    const cc = el.querySelector('canvas.co'), c = cc.getContext('2d'), cw = cc.width, ch = cc.height;
+    c.clearRect(0, 0, cw, ch);
+    const cores = live ? x.cores : [], lv = S.coreLv[n.name] || (S.coreLv[n.name] = []);
+    const bw = cores.length ? Math.max(2, Math.floor((cw - (cores.length - 1)) / cores.length)) : 0;
+    cores.forEach((v, k) => {
+      lv[k] = (lv[k] ?? 0) + (v / 100 - (lv[k] ?? 0)) * .15;
+      const bh = Math.max(2, lv[k] * (ch - 4)), bx = k * (bw + 1);
+      c.fillStyle = `rgba(${BRASS},.10)`; c.fillRect(bx, 2, bw, ch - 4);
+      c.fillStyle = `rgba(${lv[k] > .75 ? RED : lv[k] > .4 ? '243,217,146' : BRASS},.95)`; c.fillRect(bx, ch - 2 - bh, bw, bh);
+    });
   });
 }
 
@@ -654,7 +676,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (now - lastFrame < 31) return;
   const dt = Math.min(.1, (now - lastFrame) / 1000); lastFrame = now;
-  drawTracker(now); drawPins(); drawEkg(dt); drawChains(now); drawLev(now);
+  drawTracker(now); drawPins(); drawNodes(); drawChains(now); drawLev(now);
   const t = new Date();
   $('#clock').textContent = `${pad2(t.getHours())}:${pad2(t.getMinutes())}:${pad2(t.getSeconds())}`;
   $('#date').textContent = `${t.getFullYear()}.${pad2(t.getMonth() + 1)}.${pad2(t.getDate())}`;

@@ -18,6 +18,7 @@ recovered from the Labyrinth: ALIENS (1986) crossed with HELLRAISER (1987).
 
     .\Start-Hud.ps1    # server + borderless window on the Edge (safe to re-run)
     .\Stop-Hud.ps1
+    .\Set-EdgeBrightness.ps1 -Percent 60   # hardware backlight over DDC/CI; no argument = show current
 
 `server.js` is dependency-free Node, binds 127.0.0.1:1986 only, and pushes one JSON snapshot a
 second over SSE (`/api/stream`; `/api/telemetry` for a one-shot). `index.html` is the whole front end.

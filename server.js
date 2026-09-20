@@ -20,6 +20,7 @@ const cfg = Object.assign({
   kubeconfig: path.join(os.homedir(), '.kube', 'turing-config'),
   ollama: 'http://127.0.0.1:11434',
   disks: ['C', 'D', 'E', 'F'],
+  displayNames: {}, // cosmetic only: { "real-hostname": "name shown on the HUD" }; the node is never renamed
 }, readJson(path.join(ROOT, 'config.local.json')) || {});
 
 const T = {
@@ -212,6 +213,7 @@ async function sampleK3s() {
     const t = top[name] || {};
     return {
       name, ready, ip,
+      label: cfg.displayNames[name] || name,
       cp: roles.includes('control-plane'),
       arch: n.status.nodeInfo.architecture,
       gpu: !!(n.status.capacity && n.status.capacity['nvidia.com/gpu']),
@@ -223,8 +225,8 @@ async function sampleK3s() {
   const readyNow = Object.fromEntries(nodes.map((n) => [n.name, n.ready]));
   if (nodeReady) {
     for (const n of nodes) {
-      if (nodeReady[n.name] === true && !n.ready) log(`${n.name} SIGNAL LOST // NOTREADY`, 'crit');
-      if (nodeReady[n.name] === false && n.ready) log(`${n.name} SIGNAL REACQUIRED // READY`);
+      if (nodeReady[n.name] === true && !n.ready) log(`${n.label} SIGNAL LOST // NOTREADY`, 'crit');
+      if (nodeReady[n.name] === false && n.ready) log(`${n.label} SIGNAL REACQUIRED // READY`);
     }
   }
   nodeReady = readyNow;

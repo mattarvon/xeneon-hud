@@ -2,5 +2,8 @@
   "port": 1986,
   "kubeconfig": "C:\\Users\\you\\.kube\\turing-config",
   "ollama": "http://127.0.0.1:11434",
-  "disks": ["C", "E"]
+  "disks": ["C", "E"],
+  "displayNames": {
+    "real-node-hostname": "name-shown-on-the-hud"
+  }
 }

@@ -342,7 +342,7 @@ if (location.search.includes('poll')) { // headless screenshots: an open SSE str
 function alerts(d) {
   const a = [];
   if (!d.k3s.up) a.push('CLUSTER UPLINK LOST');
-  d.k3s.nodes.filter((n) => !n.ready).forEach((n) => a.push(`${n.name} FLATLINE`));
+  d.k3s.nodes.filter((n) => !n.ready).forEach((n) => a.push(`${n.label || n.name} FLATLINE`));
   if (d.gpu && d.gpu.temp >= 85) a.push(`SMARTGUN OVERHEAT ${toF(d.gpu.temp)}F // NO TEARS PLEASE`);
   ((d.k3s.argo || {}).bad || []).forEach((x) => a.push(`ARGO ${x.name} ${x.health}`));
   if (!d.ollama.up) a.push('BISHOP OFFLINE');
@@ -405,7 +405,7 @@ function onData(d) {
 
   // node vitals (live node-exporter scrape; falls back to metrics-server numbers if a node has no feed)
   const nx = d.k3s.nx || {};
-  const key = d.k3s.nodes.map((n) => n.name).join('|');
+  const key = d.k3s.nodes.map((n) => `${n.name}=${n.label || ''}`).join('|');
   if (key !== S.nodeKey) {
     S.nodeKey = key;
     $('#squadRows').innerHTML = '<div class="nhead"><span>HOST</span><span>CPU // LIVE 5 MIN</span><span>PER CORE</span><span>CPU PCT</span><span>TEMP F</span><span>LIVE COUNTERS</span></div>'
@@ -418,7 +418,7 @@ function onData(d) {
     const x = nx[n.name], live = x && !x.stale;
     const pods = (d.k3s.pods.byNode || {})[n.name];
     el.classList.toggle('dead', !n.ready);
-    el.querySelector('.cs').textContent = n.name;
+    el.querySelector('.cs').textContent = n.label || n.name;
     el.querySelector('.sub').textContent = `${n.ip || ''}${pods === undefined ? '' : ` // ${pods} PODS`}`;
     el.querySelector('.st').textContent = !n.ready ? 'FLATLINE' : !live ? 'NO EXPORTER FEED'
       : `${n.cp ? 'COMMAND' : n.gpu ? 'GUNNER' : 'READY'} // ${x.mhz ? `${x.mhz} MHZ` : n.arch}`; // the column only fits one detail
@@ -551,7 +551,8 @@ function drawTracker(now) {
     tx.fillStyle = gr; tx.beginPath(); tx.arc(x, y, sz, 0, Math.PI * 2); tx.fill();
     tx.fillStyle = `rgba(${col},${.5 + b * .5})`; tx.font = '11px Bahnschrift'; tx.textAlign = 'center';
     // try above, below, then further out, and take the first spot no other hostname occupies
-    const text = lost ? `${n.name.toUpperCase()} LOST` : n.name.toUpperCase();
+    const shown = (n.label || n.name).toUpperCase();
+    const text = lost ? `${shown} LOST` : shown;
     const tw = tx.measureText(text).width / 2 + 3;
     const lx = Math.max(tw, Math.min(w - tw, x));
     const base = 9 * Math.max(.62, R / 440) + 5; // offset from the blip's resting size so labels don't bob with the pulse

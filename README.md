@@ -33,7 +33,8 @@ Open `http://127.0.0.1:1986/` in any browser for a letterboxed preview; add `?po
 ## Config
 
 Optional `config.local.json` (gitignored); see `config.example.json`. No credentials are needed or stored.
-Hosts are always shown by their real hostnames, never nicknames. All temperatures display in Fahrenheit
+Hosts are shown by their real hostnames. To display one differently without renaming the machine, map it
+under `displayNames` (`{ "real-hostname": "shown-name" }`); data lookups still use the real name. All temperatures display in Fahrenheit
 (feeds report Celsius; `toF()` in `index.html` converts).
 
 ## Gotchas

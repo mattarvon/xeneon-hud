@@ -26,13 +26,8 @@ foreach ($i in 1..45) { if (Get-Process iCUE -ErrorAction SilentlyContinue) { br
 Note ("iCUE running: " + [bool](Get-Process iCUE -ErrorAction SilentlyContinue))
 Start-Sleep -Seconds 15
 
-# 3) HUD up, backlight set
+# 3) HUD up, backlight set. Start-Hud.ps1 also starts Watch-Hud.ps1, which from here on keeps the HUD
+#    above iCUE (late iCUE start, every resume from sleep, display changes) and relaunches it if it dies.
 try { Note (& "$root\Start-Hud.ps1" | Out-String).Trim() } catch { Note "Start-Hud failed: $($_.Exception.Message)" }
 try { Note (& "$root\Set-EdgeBrightness.ps1" -Percent $Brightness | Out-String).Trim() } catch { Note "brightness failed: $($_.Exception.Message)" }
-
-# 4) iCUE may still come up late or re-raise itself: put the HUD back on top a few times
-foreach ($wait in 30, 60, 120) {
-    Start-Sleep -Seconds $wait
-    try { [void](& "$root\Start-Hud.ps1" -TopmostOnly); Note "topmost re-asserted (+${wait}s)" } catch { Note "re-assert failed: $($_.Exception.Message)" }
-}
 Note 'login done'

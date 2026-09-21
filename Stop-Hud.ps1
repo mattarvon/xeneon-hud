@@ -3,6 +3,10 @@ $root = $PSScriptRoot
 $cfg  = Get-Content "$root\config.local.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
 $port = if ($cfg.port) { $cfg.port } else { 1986 }
 
+# the watchdog goes first, or it would relaunch the HUD we are about to close
+Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" | Where-Object { $_.CommandLine -match 'Watch-Hud\.ps1' } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
 # the HUD browser is matched by its dedicated profile dir, so normal browsing is untouched
 $profileDir = [regex]::Escape("$root\.chrome-profile")
 Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match $profileDir } |

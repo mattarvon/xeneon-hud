@@ -1,9 +1,15 @@
 # Starts the TAC-NET telemetry server (if not already up) and opens the HUD
 # borderless on the Xeneon Edge. Safe to re-run: it replaces the old HUD window.
 #   -TopmostOnly   leave the running HUD alone and just put it back on top of iCUE
-param([switch]$TopmostOnly)
+#   -NoWatchdog    do not start Watch-Hud.ps1 (the watchdog passes this when it calls us)
+param([switch]$TopmostOnly, [switch]$NoWatchdog)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+
+# --- watchdog: keeps the HUD on top through sleep/wake, display changes, and iCUE restarts
+if (-not $NoWatchdog -and -not (Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" | Where-Object { $_.CommandLine -match 'Watch-Hud\.ps1' })) {
+    Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', "`"$root\Watch-Hud.ps1`""
+}
 $cfg  = Get-Content "$root\config.local.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
 $port = if ($cfg.port) { $cfg.port } else { 1986 }
 

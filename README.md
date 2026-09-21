@@ -23,8 +23,13 @@ recovered from the Labyrinth: ALIENS (1986) crossed with HELLRAISER (1987).
     .\Capture-Edge.ps1                     # screenshot what is really on the Edge -> shots\live.png (gitignored)
 
 At login `Start-Hud-AtLogin.ps1` waits for the Edge to enumerate and for iCUE to start, launches the HUD,
-sets the backlight, then re-asserts topmost at +30 s, +90 s and +210 s in case iCUE comes up late.
-It logs to `login.log`. `Start-Hud.ps1 -TopmostOnly` puts a buried HUD back on top without relaunching it.
+and sets the backlight (log: `login.log`).
+
+`Start-Hud.ps1` also starts `Watch-Hud.ps1`, a hidden single-instance watchdog that checks every 10 s and
+repairs three things: HUD window gone (relaunch), HUD not exactly on the Edge (move it), another window
+covering it (raise it). A login-time launch alone is not enough: on every resume from sleep iCUE raises its
+own topmost window back over the HUD. Log: `watch.log`. `Stop-Hud.ps1` stops the watchdog first.
+`Start-Hud.ps1 -TopmostOnly` does a one-off raise by hand.
 
 `server.js` is dependency-free Node, binds 127.0.0.1:1986 only, and pushes one JSON snapshot a
 second over SSE (`/api/stream`; `/api/telemetry` for a one-shot). `index.html` is the whole front end.

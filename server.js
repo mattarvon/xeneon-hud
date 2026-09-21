@@ -186,6 +186,7 @@ function kubectl(args) {
 }
 
 let nodeReady = null;
+let k3sMisses = 0;
 
 async function sampleK3s() {
   const [nodesRaw, topRaw] = await Promise.all([
@@ -193,10 +194,13 @@ async function sampleK3s() {
     kubectl(['top', 'nodes', '--no-headers']),
   ]);
   if (!nodesRaw) {
+    // one miss is normal right after the rig wakes from sleep (network not up yet); two in a row is real
+    if (++k3sMisses < 2) return;
     if (T.k3s.up) log('CLUSTER UPLINK LOST', 'crit');
     T.k3s.up = false;
     return;
   }
+  k3sMisses = 0;
   const top = {};
   for (const line of (topRaw || '').split('\n')) {
     const f = line.trim().split(/\s+/);
